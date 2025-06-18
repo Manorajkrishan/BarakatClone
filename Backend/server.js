@@ -23,11 +23,11 @@ app.use(express.urlencoded({ extended: true, limit: "1000mb" }));
 app.use("/uploads", express.static("uploads"));
 
 // API Routes
-app.use("/api/auth", authRoutes);             // Login/Register
-app.use("/api/products", productRoutes);      // Product CRUD
-app.use("/api/categories", categoryRoutes);   // Category CRUD
-app.use("/api/orders", orderRoutes);          // ✅ Order endpoint
-app.use("/api/users", userRoutes);            // ✅ User management
+app.use("/api/auth", authRoutes); // Login/Register
+app.use("/api/products", productRoutes); // Product CRUD
+app.use("/api/categories", categoryRoutes); // Category CRUD
+app.use("/api/orders", orderRoutes); // ✅ Order endpoint
+app.use("/api/users", userRoutes); // ✅ User management
 
 // Health check route
 app.get("/", (req, res) => {
@@ -35,16 +35,14 @@ app.get("/", (req, res) => {
 });
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log("✅ MongoDB connected");
-  app.listen(process.env.PORT || 5000, () =>
-    console.log(`🚀 Server running on port ${process.env.PORT || 5000}`)
-  );
-})
-.catch((err) => {
-  console.error("❌ MongoDB connection failed:", err.message);
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    app.listen(process.env.PORT || 5000, () =>
+      console.log(`🚀 Server running on port ${process.env.PORT || 5000}`)
+    );
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed:", err.message);
+  });

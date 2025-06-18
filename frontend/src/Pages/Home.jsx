@@ -14,7 +14,9 @@ import {
   FaTag,
   FaFire,
   FaGift,
-  FaChevronRight
+  FaChevronRight,
+  FaChevronDown,
+  FaImage,
 } from "react-icons/fa";
 
 const Home = () => {
@@ -25,15 +27,15 @@ const Home = () => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [hoveredCategoryIndex, setHoveredCategoryIndex] = useState(null);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await Promise.all([
-          fetchCategories(),
-          fetchProducts()
-        ]);
+        await Promise.all([fetchCategories(), fetchProducts()]);
       } finally {
         setLoading(false);
       }
@@ -46,7 +48,7 @@ const Home = () => {
       const res = await api.get("/categories");
       setCategories(res.data);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
     }
   };
@@ -58,10 +60,12 @@ const Home = () => {
       // Set featured products (first 8 products for demo)
       setFeaturedProducts(res.data.slice(0, 8));
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching products:", error);
       toast.error("Failed to load products");
     }
   };
+
+
 
   const getProductsBySubcategory = (subcategoryName) =>
     products.filter(
@@ -69,12 +73,51 @@ const Home = () => {
         product.subcategory?.toLowerCase() === subcategoryName?.toLowerCase()
     );
 
+  const getProductsByCategory = (categoryName) =>
+    products.filter(
+      (product) =>
+        product.category?.toLowerCase() === categoryName?.toLowerCase()
+    );
 
+  // Handle category selection from navbar
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    setSelectedSubcategory(null);
+
+    // Scroll to products section
+    setTimeout(() => {
+      const productsSection = document.getElementById("products-section");
+      if (productsSection) {
+        productsSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
+
+  // Handle subcategory selection from navbar
+  const handleSubcategorySelect = (category, subcategory) => {
+    setSelectedCategory(category);
+    setSelectedSubcategory(subcategory);
+
+    // Scroll to products section
+    setTimeout(() => {
+      const productsSection = document.getElementById("products-section");
+      if (productsSection) {
+        productsSection.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen">
         <NavBar />
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-center h-16">
+              <div className="loading-spinner w-8 h-8"></div>
+            </div>
+          </div>
+        </div>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <div className="loading-spinner w-12 h-12 mx-auto mb-4"></div>
@@ -86,85 +129,153 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <NavBar />
+    <div className="relative">
+      {/* Sticky Top Nav */}
+      <div className="sticky top-0 z-50 bg-white shadow-md">
+        <NavBar />
+
+        {/* Category Mega Menu */}
+        <div
+          className="relative bg-white border-t border-green-400"
+          onMouseLeave={() => {
+            setHoveredCategoryIndex(null);
+            setShowCategoriesModal(false);
+          }}
+        >
+          <div className="flex justify-start px-4 space-x-6 py-3 overflow-x-auto text-sm font-semibold text-gray-800">
+            {categories.map((cat, index) => (
+              <div
+                key={cat._id}
+                className="relative group"
+                onMouseEnter={() => {
+                  setHoveredCategoryIndex(index);
+                  setShowCategoriesModal(true);
+                }}
+              >
+                <button
+                  onClick={() => handleCategorySelect(cat)}
+                  className="hover:text-green-600 whitespace-nowrap px-2 py-1 transition-colors"
+                >
+                  {cat.name}
+                  {cat.subcategories?.length > 0 && (
+                    <span className="ml-1 text-xs">▾</span>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Mega Dropdown Modal */}
+          {showCategoriesModal &&
+            hoveredCategoryIndex !== null &&
+            categories[hoveredCategoryIndex]?.subcategories?.length > 0 && (
+              <div className="absolute w-full left-0 bg-gray-50 border-t border-green-300 shadow-lg z-40">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 p-6 max-h-72 overflow-y-auto">
+                  {categories[hoveredCategoryIndex].subcategories.map(
+                    (subcat, subIndex) => {
+                      const subcatName =
+                        typeof subcat === "string" ? subcat : subcat.name;
+                      const subcatImage =
+                        typeof subcat === "object" ? subcat.image : "";
+
+                      return (
+                        <button
+                          key={subIndex}
+                          onClick={() =>
+                            handleSubcategorySelect(
+                              categories[hoveredCategoryIndex],
+                              subcat
+                            )
+                          }
+                          className="flex flex-col items-center justify-center text-center bg-white rounded-lg shadow hover:shadow-md hover:bg-green-50 cursor-pointer p-4 transition-all duration-200 group"
+                        >
+                          {subcatImage && (
+                            <img
+                              src={subcatImage}
+                              alt={subcatName}
+                              className="w-8 h-8 object-cover rounded-lg border border-gray-200 mb-2"
+                            />
+                          )}
+                          <span className="text-sm text-gray-700 font-medium group-hover:text-green-600">
+                            {subcatName}
+                          </span>
+                          <span className="text-xs text-gray-500 mt-1">
+                            {getProductsBySubcategory(subcatName).length} items
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              </div>
+            )}
+        </div>
+      </div>
+
+
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="gradient-bg">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div className="text-white animate-slide-in-left">
-                <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                  Fresh Products
-                  <br />
-                  <span className="text-green-200">Delivered Daily</span>
-                </h1>
-                <p className="text-xl mb-8 text-green-100 leading-relaxed">
-                  Discover the finest selection of fresh, organic products delivered straight to your doorstep.
-                  Quality you can trust, freshness you can taste.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    className="btn btn-secondary btn-lg group"
-                    onClick={() => document.getElementById('featured-products').scrollIntoView({ behavior: 'smooth' })}
-                  >
-                    Shop Now
-                    <FaArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-lg text-white border-white hover:bg-white hover:text-green-600"
-                    onClick={() => toast.info('Learn more section coming soon!')}
-                  >
-                    Learn More
-                  </button>
-                </div>
-              </div>
+      <div className="px-4 py-8">
+        <HeroSlider />
+      </div>
 
-              <div className="relative animate-slide-in-right">
-                <div className="relative z-10">
-                  <img
-                    src="https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-                    alt="Fresh Products"
-                    className="rounded-2xl shadow-2xl"
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              {
+                icon: FaShippingFast,
+                title: "Free Delivery",
+                desc: "On orders over AED 100",
+                color: "text-blue-600",
+              },
+              {
+                icon: FaShieldAlt,
+                title: "Quality Guarantee",
+                desc: "100% fresh products",
+                color: "text-green-600",
+              },
+              {
+                icon: FaHeadset,
+                title: "24/7 Support",
+                desc: "Always here to help",
+                color: "text-purple-600",
+              },
+              {
+                icon: FaLeaf,
+                title: "Organic Certified",
+                desc: "Naturally grown",
+                color: "text-emerald-600",
+              },
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="card p-6 text-center card-hover animate-fade-in group"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="mb-4">
+                  <item.icon
+                    className={`text-4xl ${item.color} mx-auto group-hover:scale-110 transition-transform duration-200`}
                   />
                 </div>
-                <div className="absolute -top-4 -right-4 w-72 h-72 bg-green-400 rounded-full opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-4 -left-4 w-48 h-48 bg-green-300 rounded-full opacity-30 animate-bounce"></div>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Stats */}
-        <div className="absolute bottom-0 left-0 right-0 transform translate-y-1/2">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { icon: FaShippingFast, title: "Free Delivery", desc: "On orders over AED 100" },
-                { icon: FaShieldAlt, title: "Quality Guarantee", desc: "100% fresh products" },
-                { icon: FaHeadset, title: "24/7 Support", desc: "Always here to help" },
-                { icon: FaLeaf, title: "Organic Certified", desc: "Naturally grown" }
-              ].map((item, index) => (
-                <div key={index} className="card p-6 text-center card-hover animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <item.icon className="text-3xl text-green-600 mx-auto mb-3" />
-                  <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
-
-      {/* Spacer for floating stats */}
-      <div className="h-32"></div>
 
       {/* Categories Section */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Shop by Category</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Shop by Category
+            </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Explore our wide range of fresh products organized by categories
             </p>
@@ -178,13 +289,17 @@ const Home = () => {
                 style={{ animationDelay: `${index * 0.1}s` }}
                 onClick={() => {
                   setSelectedCategory(category);
-                  document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+                  document
+                    .getElementById("products-section")
+                    .scrollIntoView({ behavior: "smooth" });
                 }}
               >
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
                   <FaLeaf className="text-2xl text-green-600" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  {category.name}
+                </h3>
                 <p className="text-sm text-gray-600 mb-3">
                   {category.subcategories?.length || 0} subcategories
                 </p>
@@ -213,7 +328,7 @@ const Home = () => {
             </div>
             <button
               className="btn btn-secondary hidden md:flex"
-              onClick={() => toast.info('View all products page coming soon!')}
+              onClick={() => toast.info("View all products page coming soon!")}
             >
               View All
               <FaArrowRight className="ml-2" />
@@ -235,7 +350,7 @@ const Home = () => {
           <div className="text-center mt-8 md:hidden">
             <button
               className="btn btn-secondary"
-              onClick={() => toast.info('View all products page coming soon!')}
+              onClick={() => toast.info("View all products page coming soon!")}
             >
               View All Products
               <FaArrowRight className="ml-2" />
@@ -251,43 +366,129 @@ const Home = () => {
             <div>
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                  {selectedCategory.name} Products
+                  {selectedSubcategory
+                    ? `${selectedSubcategory.name} Products`
+                    : `${selectedCategory.name} Products`
+                  }
                 </h2>
                 <p className="text-xl text-gray-600">
-                  Discover our {selectedCategory.name.toLowerCase()} collection
+                  {selectedSubcategory
+                    ? `Explore our ${selectedSubcategory.name.toLowerCase()} collection`
+                    : `Discover our ${selectedCategory.name.toLowerCase()} collection`
+                  }
                 </p>
+                {selectedSubcategory && (
+                  <button
+                    onClick={() => setSelectedSubcategory(null)}
+                    className="mt-4 text-green-600 hover:text-green-700 text-sm font-medium flex items-center justify-center mx-auto"
+                  >
+                    ← Back to all {selectedCategory.name} products
+                  </button>
+                )}
               </div>
 
-              {selectedCategory.subcategories?.map((subcat, index) => {
-                const filteredProducts = getProductsBySubcategory(subcat);
-                if (filteredProducts.length === 0) return null;
-
-                return (
-                  <div key={index} className="mb-12">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-2xl font-semibold text-gray-900 flex items-center">
-                        <FaTag className="text-green-600 mr-3" />
-                        {subcat}
-                      </h3>
-                      <span className="text-sm text-gray-500">
-                        {filteredProducts.length} products
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                      {filteredProducts.map((product, productIndex) => (
-                        <div
-                          key={product._id}
-                          className="animate-fade-in"
-                          style={{ animationDelay: `${productIndex * 0.05}s` }}
-                        >
-                          <ProductCard product={product} />
+              {selectedSubcategory ? (
+                // Show products for specific subcategory
+                <div>
+                  {(() => {
+                    const filteredProducts = getProductsBySubcategory(selectedSubcategory.name);
+                    if (filteredProducts.length === 0) {
+                      return (
+                        <div className="text-center py-16">
+                          <FaGift className="text-6xl text-gray-300 mx-auto mb-6" />
+                          <h3 className="text-2xl font-semibold text-gray-900 mb-4">
+                            No Products Found
+                          </h3>
+                          <p className="text-gray-600 mb-8">
+                            We don't have any products in {selectedSubcategory.name} yet.
+                          </p>
+                          <button
+                            onClick={() => setSelectedSubcategory(null)}
+                            className="btn btn-secondary"
+                          >
+                            Browse Other Subcategories
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredProducts.map((product, productIndex) => (
+                          <div
+                            key={product._id}
+                            className="animate-fade-in"
+                            style={{ animationDelay: `${productIndex * 0.05}s` }}
+                          >
+                            <ProductCard product={product} />
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                // Show all subcategories for the selected category
+                <div>
+                  {selectedCategory.subcategories?.map((subcat, index) => {
+                    const subcategoryName = typeof subcat === 'string' ? subcat : subcat.name;
+                    const filteredProducts = getProductsBySubcategory(subcategoryName);
+                    if (filteredProducts.length === 0) return null;
+
+                    return (
+                      <div key={index} className="mb-12">
+                        <div className="flex items-center justify-between mb-6">
+                          <button
+                            onClick={() => setSelectedSubcategory(subcat)}
+                            className="flex items-center space-x-3 group hover:bg-green-50 p-2 rounded-lg transition-colors"
+                          >
+                            {typeof subcat === 'object' && subcat.image ? (
+                              <img
+                                src={subcat.image}
+                                alt={subcat.name}
+                                className="w-8 h-8 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <FaTag className="text-green-600" />
+                            )}
+                            <h3 className="text-2xl font-semibold text-gray-900 group-hover:text-green-700">
+                              {subcategoryName}
+                            </h3>
+                            <FaChevronRight className="text-green-600 group-hover:translate-x-1 transition-transform" />
+                          </button>
+                          <span className="text-sm text-gray-500">
+                            {filteredProducts.length} products
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {filteredProducts.slice(0, 4).map((product, productIndex) => (
+                            <div
+                              key={product._id}
+                              className="animate-fade-in"
+                              style={{ animationDelay: `${productIndex * 0.05}s` }}
+                            >
+                              <ProductCard product={product} />
+                            </div>
+                          ))}
+                        </div>
+
+                        {filteredProducts.length > 4 && (
+                          <div className="text-center mt-6">
+                            <button
+                              onClick={() => setSelectedSubcategory(subcat)}
+                              className="btn btn-secondary"
+                            >
+                              View all {filteredProducts.length} {subcategoryName} products
+                              <FaArrowRight className="ml-2" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-16">
@@ -296,11 +497,15 @@ const Home = () => {
                 Select a Category
               </h3>
               <p className="text-gray-600 mb-8">
-                Choose a category above to explore our products
+                Choose a category from the navigation above to explore our products
               </p>
               <button
                 className="btn btn-primary"
-                onClick={() => document.getElementById('featured-products').scrollIntoView({ behavior: 'smooth' })}
+                onClick={() =>
+                  document
+                    .getElementById("featured-products")
+                    .scrollIntoView({ behavior: "smooth" })
+                }
               >
                 View Featured Products
               </button>
@@ -315,7 +520,8 @@ const Home = () => {
           <div className="text-white">
             <h2 className="text-4xl font-bold mb-4">Stay Updated</h2>
             <p className="text-xl text-green-100 mb-8">
-              Get the latest updates on new products, special offers, and seasonal deals
+              Get the latest updates on new products, special offers, and
+              seasonal deals
             </p>
             <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <input
@@ -325,7 +531,9 @@ const Home = () => {
               />
               <button
                 className="btn btn-secondary"
-                onClick={() => toast.success('Newsletter subscription coming soon!')}
+                onClick={() =>
+                  toast.success("Newsletter subscription coming soon!")
+                }
               >
                 Subscribe
               </button>

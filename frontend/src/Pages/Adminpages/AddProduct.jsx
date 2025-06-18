@@ -145,7 +145,10 @@ const ProductInventory = () => {
 
           <select name="subcategoryId" value={form.subcategoryId} onChange={handleChange} className="w-full border p-2" required>
             <option value="">Select Subcategory</option>
-            {getSubcategories().map((sub, idx) => <option key={idx} value={sub}>{sub}</option>)}
+            {getSubcategories().map((sub, idx) => {
+              const subcategoryName = typeof sub === 'string' ? sub : sub.name;
+              return <option key={idx} value={subcategoryName}>{subcategoryName}</option>;
+            })}
           </select>
 
           <input type="text" name="name" placeholder="Product Name" value={form.name} onChange={handleChange} className="w-full border p-2" required />

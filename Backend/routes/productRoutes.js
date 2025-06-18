@@ -8,7 +8,11 @@ const {
   deleteProduct,
 } = require("../controllers/productController");
 
-router.post("/", createProduct);
+router.post("/", (req, res, next) => {
+  console.log("🔥 POST /api/products route hit!");
+  console.log("📝 Request body:", req.body);
+  next();
+}, createProduct);
 router.get("/", getAllProducts);
 router.put("/:id", updateProduct);
 router.delete("/:id", deleteProduct);

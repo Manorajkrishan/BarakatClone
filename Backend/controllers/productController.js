@@ -1,8 +1,12 @@
 const Product = require("../models/Product");
 const Category = require("../models/Category");
 
+console.log("🔥🔥🔥 PRODUCT CONTROLLER LOADED - NEW VERSION! 🔥🔥🔥");
+
 // ✅ Create Product
 exports.createProduct = async (req, res) => {
+  console.log("🚀 CREATE PRODUCT CALLED - NEW VERSION!");
+  console.log("📝 Request body:", req.body);
   try {
     const {
       name,
@@ -24,8 +28,29 @@ exports.createProduct = async (req, res) => {
     }
 
     const category = await Category.findById(mainCategoryId);
-    if (!category || !category.subcategories.includes(subcategoryId)) {
-      return res.status(400).json({ message: "Invalid main category or subcategory" });
+    console.log("🔍 Category found:", category);
+    if (!category) {
+      return res.status(400).json({ message: "Invalid main category" });
+    }
+
+    console.log("🔍 Subcategories:", category.subcategories);
+    console.log("🔍 Looking for subcategoryId:", subcategoryId);
+
+    // Check if subcategory exists (handle both string and object formats)
+    const subcategoryExists = category.subcategories.some(sub => {
+      console.log("🔍 Checking subcategory:", sub, "Type:", typeof sub);
+      if (typeof sub === 'string') {
+        return sub === subcategoryId;
+      } else if (typeof sub === 'object' && sub.name) {
+        return sub.name === subcategoryId;
+      }
+      return false;
+    });
+
+    console.log("🔍 Subcategory exists:", subcategoryExists);
+
+    if (!subcategoryExists) {
+      return res.status(400).json({ message: "Invalid subcategory" });
     }
 
     const product = new Product({
@@ -81,8 +106,22 @@ exports.updateProduct = async (req, res) => {
     }
 
     const category = await Category.findById(mainCategoryId);
-    if (!category || !category.subcategories.includes(subcategoryId)) {
-      return res.status(400).json({ message: "Invalid main category or subcategory" });
+    if (!category) {
+      return res.status(400).json({ message: "Invalid main category" });
+    }
+
+    // Check if subcategory exists (handle both string and object formats)
+    const subcategoryExists = category.subcategories.some(sub => {
+      if (typeof sub === 'string') {
+        return sub === subcategoryId;
+      } else if (typeof sub === 'object' && sub.name) {
+        return sub.name === subcategoryId;
+      }
+      return false;
+    });
+
+    if (!subcategoryExists) {
+      return res.status(400).json({ message: "Invalid subcategory" });
     }
 
     const updated = await Product.findByIdAndUpdate(
